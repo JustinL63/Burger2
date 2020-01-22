@@ -14,7 +14,11 @@ class ContactData extends Component {
                     type: "text",
                     placeholder: "Your Name"
                 },
-                value: ""
+                value: "",
+                validation: {
+                    required: true
+                },
+                valid: false
             },
             street: {
                 elementType: "input",
@@ -22,7 +26,11 @@ class ContactData extends Component {
                     type: "text",
                     placeholder: "Street"
                 },
-                value: ""
+                value: "",
+                validation: {
+                    required: true
+                },
+                valid: false
             },
             zipcode: {
                 elementType: "input",
@@ -30,7 +38,13 @@ class ContactData extends Component {
                     type: "text",
                     placeholder: "Zip Code"
                 },
-                value: ""
+                value: "",
+                validation: {
+                    required: true,
+                    minLength: 5,
+                    maxLength: 6
+                },
+                valid: false
             },
             country: {
                 elementType: "input",
@@ -38,7 +52,11 @@ class ContactData extends Component {
                     type: "text",
                     placeholder: "Country"
                 },
-                value: ""
+                value: "",
+                validation: {
+                    required: true
+                },
+                valid: false
             },
             email: {
                 elementType: "input",
@@ -46,7 +64,11 @@ class ContactData extends Component {
                     type: "email",
                     placeholder: "Your Email"
                 },
-                value: ""
+                value: "",
+                validation: {
+                    required: true
+                },
+                valid: false
             },
             deliveryMethod: {
                 elementType: "select",
@@ -65,9 +87,14 @@ class ContactData extends Component {
     orderHandler = (event) => {
         event.preventDefault()
         this.setState({loading: true})
-               const order = {
+                const formData = {}
+                for (let formElementIdentifier in this.state.orderForm) {
+                    formData[formElementIdentifier] =this.state.orderForm[formElementIdentifier].value
+                }
+                const order = {
                    ingredients: this.props.ingredients,
                    price: this.props.price,
+                   orderData: formData
                   
                }
                 axios.post("/orders.json", order)
@@ -78,12 +105,56 @@ class ContactData extends Component {
                     .catch(error => this.setState({loading: false}))
     }
 
+    checkValidity(value, rules) {
+        let isValid = false
+        if (rules.required) {
+            isValid = value.trim() !== ""
+        }
+
+        if (rules.minLength) {
+            isValid =value.length >= rules.minLength
+        }
+
+        if (rules.maxLength) {
+            isValid =value.length <= rules.maxLength
+        }
+
+        return isValid
+    }
+
+    inputChangedHandler = (event, inputIdentifier) => {
+        const updatedOrderForm = {
+            ...this.state.orderForm
+        }
+        const updatedFormElement = {
+            ...updatedOrderForm[inputIdentifier]
+        }
+        updatedFormElement.value = event.target.value
+        updatedFormElement.valid = this.checkValidity(updatedFormElement.value, updatedFormElement.validation)
+        updatedOrderForm[inputIdentifier] = updatedFormElement
+        console.log(updatedFormElement)
+        this.setState({orderForm: updatedOrderForm})
+    }
+
     render() {
-        let form = ( <form>
-            <Input elementType="..." elementConfig="..." value="..."/>
-            <Input inputtype="input" type="email" name="email" placeholder="Your Email"/>
-            <Input inputtype="input" type="text"  name="street" placeholder="Street"/>
-            <Input inputtype="input" type="text"  name="postal" placeholder="Postal Code"/>
+        const formElementArray = []
+        for (let key in this.state.orderForm) {
+            formElementArray.push({
+                id: key, 
+                config: this.state.orderForm[key]
+            })
+        }
+        let form = ( 
+            <form onSubmit={this.orderHandler}>
+                {formElementArray.map(formElement => (
+                    <Input
+                        key={formElement.id} 
+                        elementType={formElement.config.elementType}
+                        elementConfig={formElement.config.elementConfig}
+                        value={formElement.config.value}
+                        changed={(event) => this.inputChangedHandler(event, formElement.id)}
+                />
+            ))}
             <Button btnType="Success" clicked={this.orderHandler}>Order</Button>
         </form>)
         if (this.state.loading) {
